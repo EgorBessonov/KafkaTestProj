@@ -12,7 +12,7 @@ type PostgresRepository struct {
 	DBconn *pgxpool.Pool
 }
 
-func NewPostgresRepository(cfg config.Config) *PostgresRepository {
+func NewPostgresRepository(cfg *config.Config) *PostgresRepository {
 	conn, err := pgxpool.Connect(context.Background(), cfg.PostgresdbURL)
 	if err != nil {
 		log.Fatalf("repository: connection failed - %e", err)
