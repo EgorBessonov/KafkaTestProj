@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/EgorBessonov/KafkaTestProj/internal/config"
 	"github.com/EgorBessonov/KafkaTestProj/internal/model"
+	"github.com/EgorBessonov/KafkaTestProj/internal/repository"
 	"github.com/jackc/pgx/v4"
 	"github.com/segmentio/kafka-go"
 )
@@ -28,7 +29,8 @@ func NewConsumer(cfg *config.Config) (*Consumer, error) {
 	return &Consumer{Conn: conn}, nil
 }
 
-func (consumer Consumer) Read(pBatch *pgx.Batch) error {
+func (consumer Consumer) Read(rps *repository.PostgresRepository) error {
+	pBatch := pgx.Batch{}
 	batch := consumer.Conn.ReadBatch(minBytes, maxBytes)
 	batchArr := make([]byte, 10e3)
 	for {
@@ -47,6 +49,11 @@ func (consumer Consumer) Read(pBatch *pgx.Batch) error {
 
 	if err := batch.Close(); err != nil {
 		return fmt.Errorf("consumer: error while closing batch - %e", err)
+	}
+	batchResult := rps.DBconn.SendBatch(context.Background(), &pBatch)
+	_, err := batchResult.Exec()
+	if err != nil {
+		return fmt.Errorf("consumer: can't insert messages into repository - %e", err)
 	}
 	return nil
 }
